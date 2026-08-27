@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="is">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MYNDIR</title>
+    <style>
+      :root {
+        --paper: #ffffff;
+        --paper-2: #ffffff;
+        --ink: #1c1713;
+        --muted: #605a55;
+        --line: rgba(28, 23, 19, 0.2);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body, html *, body * {
+        cursor: none !important;
+      }
+
+      .custom-cursor {
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        background: #ffffff;
+        color: var(--ink);
+        font-family: Georgia, "Times New Roman", serif;
+        cursor: none;
+      }
+
+      .page {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 26px 18px 70px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-start;
+        padding: 0 0 18px;
+        margin-bottom: 24px;
+      }
+
+      .theme-bar {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        width: 100%;
+        gap: 8px;
+      }
+
+      .theme-btn {
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        min-width: 0;
+        padding: 10px 14px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        cursor: none;
+        transition: all 0.2s ease;
+      }
+
+      .theme-btn.active {
+        background: transparent;
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 18px 16px;
+        align-items: start;
+      }
+
+      .card {
+        width: 100%;
+      }
+
+      .card img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 72vh;
+        object-fit: cover;
+        background: #d7c9b6;
+        filter: contrast(1.04) saturate(0.8) sepia(0.12);
+        cursor: none;
+      }
+
+      .card img.warm-photo,
+      .lightbox img.warm-photo {
+        filter: sepia(0.28) saturate(1.55) hue-rotate(-8deg) contrast(1.06) brightness(1.03);
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        background: rgba(255, 255, 255, 0.94);
+        cursor: none;
+      }
+
+      .lightbox[hidden] { display: none; }
+
+      .lightbox img {
+        display: block;
+        max-width: 94vw;
+        max-height: 90vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        filter: contrast(1.04) saturate(0.8) sepia(0.12);
+        cursor: none;
+      }
+
+      .lightbox-close {
+        position: absolute;
+        top: 18px;
+        right: 22px;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 2rem;
+        line-height: 1;
+        cursor: none;
+      }
+
+      .custom-cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 2147483647;
+        width: 28px;
+        height: 28px;
+        display: block;
+        pointer-events: none;
+        object-fit: contain;
+        transform: translate3d(calc(50vw - 12px), calc(50vh - 12px), 0);
+        will-change: transform;
+      }
+
+      .card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding-top: 8px;
+      }
+
+      .folder {
+        color: var(--muted);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 0.58rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .name {
+        margin: 0;
+        max-width: 62%;
+        text-align: right;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 0.68rem;
+        line-height: 1.35;
+        word-break: break-word;
+        min-height: 1.35em;
+      }
+
+      @media (max-width: 1100px) {
+        .gallery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+
+      @media (max-width: 820px) {
+        .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+
+      @media (max-width: 620px) {
+        .theme-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+
+      @media (max-width: 420px) {
+        .gallery-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <img class="custom-cursor" id="custom-cursor" src="stjarna-mús.png" alt="" aria-hidden="true" />
+    <div class="page">
+      <header class="topbar">
+        <div class="theme-bar" aria-label="Veldu liti">
+          <button class="theme-btn active" type="button" data-theme="allar">Allar myndir</button>
+          <button class="theme-btn" type="button" data-theme="blaer">Blár</button>
+          <button class="theme-btn" type="button" data-theme="gulur">Gulur</button>
+          <button class="theme-btn" type="button" data-theme="raudur">Rauður</button>
+          <button class="theme-btn" type="button" data-theme="graenn">Grænn</button>
+            <button class="theme-btn" type="button" data-theme="bleikur">Bleikur</button>
+        </div>
+      </header>
+
+      <main class="gallery-grid" id="gallery"></main>
+    </div>
+
+    <div class="lightbox" id="lightbox" hidden>
+      <button class="lightbox-close" type="button" aria-label="Loka mynd">&times;</button>
+      <img id="lightbox-image" alt="" />
+    </div>
+
+    <script>
+      const folderImages = {
+        blaer: ['007 - IMG_0215 copy.jpg', '080 - IMG_7991.jpg', '081 - IMG_1628 copy.jpg', '083 - IMG_6102.jpg', '084 - IMG_6622.jpg', '086 - IMG_8349 copy.jpg', '088 - IMG_8388 copy.jpg', '089 - IMG_8403 copy.jpg', '090 - IMG_1882.jpg', '091 - IMG_2677 2.jpg', '092 - IMG_5776.jpg', '093 - IMG_5252.jpg', '094 - IMG_5808.jpg', '096 - CF7010B2-6C35-4729-A570-1D4FD5085409.jpg', '097 - IMG_4379.jpg', '102 - IMG_7043.jpg', 'IMG_0721.jpg', 'IMG_0724.jpg', 'IMG_0746.jpg', 'IMG_0759.jpg', 'IMG_1027.jpg', 'IMG_1031.jpg', 'IMG_1196.jpg', 'IMG_1250.jpg', 'IMG_1385.jpg', 'IMG_1602.jpg', 'IMG_1747.jpg', 'IMG_3801.jpg', 'IMG_4028.jpg', 'IMG_4067.jpg', 'IMG_4170.jpg', 'IMG_4284.jpg', 'IMG_4391.jpg', 'IMG_4786.jpg', 'IMG_5700.jpg', 'IMG_5810.jpg', 'IMG_6805.jpg', 'IMG_7193.jpg', 'IMG_7435.jpg', 'IMG_7488.jpg', 'IMG_8429.jpg', 'IMG_8478.jpg', 'IMG_9471.jpg'],
+        bleikur: ['002 - IMG_8531.jpg', '005 - IMG_8537 2.jpg', '009 - IMG_7701.jpg', '016 - IMG_9952.jpg', '022 - IMG_8540.jpg', '081 - IMG_1628.jpg', '099 - IMG_5265.jpg', '100 - IMG_6747.jpg', 'IMG_2112 copy.jpg', 'EA62EED2-CEE3-498D-9A90-29514CA82BB1.jpg', 'IMG_0011.jpg', 'IMG_0112.jpg', 'IMG_1066.jpg', 'IMG_1119.jpg', 'IMG_1209.jpg', 'IMG_1216.jpg', 'IMG_2405.jpg', 'IMG_2582.jpg', 'IMG_3702.jpg', 'IMG_5582.jpg', 'IMG_5863.jpg', 'IMG_6367.jpg', 'IMG_6703.jpg', 'IMG_7928.jpg', 'IMG_8331.jpg', 'IMG_9317.jpg', 'IMG_9962.jpg', 'IMG_9993.jpg'],
+        gulur: ['007 - IMG_0215.jpg', '011 - IMG_7193.jpg', '013 - IMG_6275.jpg', '017 - IMG_1249.jpg', '018 - IMG_8537.jpg', '020 - IMG_5212.jpg', '026 - IMG_3178.jpg', '030 - IMG_5024.jpg', '032 - IMG_7335.jpg', '035 - IMG_1382.jpg', '037 - IMG_5195.jpg', '039 - IMG_8038.jpg', '041 - IMG_7790.jpg', '042 - IMG_0750.jpg', '043 - IMG_7511.jpg', '044 - IMG_6522.jpg', '047 - IMG_7789.jpg', '053 - IMG_8488.jpg', '054 - IMG_1483.jpg', '058 - 6932F2F2-D12C-4517-98C1-9B55432E3F85.jpg', '061 - IMG_1489.jpg', '062 - IMG_6172 2.jpg', '064 - IMG_8475.jpg', '066 - 56AA7795-5286-46AD-AA14-BE54B29DD1AB.jpg', '076 - IMG_8027.jpg', '087 - IMG_7292.jpg', '090 - IMG_1882 copy.jpg', '098 - IMG_7263.jpg', 'IMG_2471 copy.jpg', 'IMG_4014.jpg', 'IMG_7325.jpg', 'Screenshot 2024-03-19 at 09.51.57.jpg', 'IMG_0562 2.jpg', 'IMG_1366.jpg', 'IMG_1687.jpg', 'IMG_2977.jpg', 'IMG_3399.jpg', 'IMG_3683.jpg', 'IMG_4784.jpg', 'IMG_5025.jpg', 'IMG_5544 2.jpg', 'IMG_5615.jpg', 'IMG_5632.jpg', 'IMG_6502.jpg', 'IMG_7052.jpg', 'IMG_7211.jpg', 'IMG_7250.jpg', 'IMG_7428.jpg', 'IMG_7504.jpg', 'IMG_7505.jpg', 'IMG_7586.jpg', 'IMG_7624.jpg', 'IMG_7653.jpg', 'IMG_7777.jpg', 'IMG_7863.jpg', 'IMG_8028.jpg', 'IMG_8029.jpg', 'IMG_8060.jpg', 'IMG_8091.jpg', 'IMG_8403.jpg', 'IMG_8474.jpg', 'IMG_9326.jpg', 'IMG_9702.jpg', 'IMG_9841.jpg', 'IMG_9893.jpg'],
+        graenn: ['027 - IMG_8156.jpg', '029 - IMG_4569.jpg', '050 - IMG_7397.jpg', '051 - IMG_9306.jpg', '056 - IMG_5640 3.jpg', '058 - 6932F2F2-D12C-4517-98C1-9B55432E3F85 copy.jpg', '059 - 7380DC6C-2E58-40F1-834C-68D319776AB7.jpg', '060 - IMG_0205.jpg', '065 - IMG_7892.jpg', '067 - IMG_2016.jpg', '068 - IMG_3460.jpg', '069 - IMG_9137.jpg', '070 - IMG_6136.jpg', '071 - IMG_0232.jpg', '072 - IMG_1071.jpg', '073 - IMG_6178.jpg', '074 - IMG_9120.jpg', '075 - IMG_8169.jpg', '077 - IMG_6252.jpg', '078 - IMG_6651.jpg', '079 - IMG_3777.jpg', '082 - IMG_8346.jpg', '085 - IMG_8048.jpg', '086 - IMG_8349.jpg', '088 - IMG_8388.jpg', '089 - IMG_8403.jpg', 'IMG_0028.jpg', 'IMG_0079.jpg', 'IMG_0563.jpg', 'IMG_0718.jpg', 'IMG_0986.jpg', 'IMG_1097.jpg', 'IMG_1216.jpg', 'IMG_1738.jpg', 'IMG_1752.jpg', 'IMG_1809.jpg', 'IMG_3329.jpg', 'IMG_4245.jpg', 'IMG_4946.jpg', 'IMG_6089 copy.jpg', 'IMG_6122.jpg', 'IMG_6272.jpg', 'IMG_6293.jpg', 'IMG_6785.jpg', 'IMG_6812.jpg', 'IMG_7218.jpg', 'IMG_7899.jpg', 'IMG_8072.jpg', 'IMG_8090.jpg', 'IMG_8166.jpg', 'IMG_8320.jpg', 'IMG_8343.jpg', 'IMG_8367.jpg', 'IMG_8449.jpg', 'IMG_8524.jpg', 'IMG_8617.jpg', 'IMG_9055.jpg', 'IMG_9315.jpg', 'IMG_9688.jpg', 'IMG_9779.jpg'],
+        raudur: ['012 - IMG_6172 2.jpg', '015 - IMG_0985 2.jpg', '066 - 56AA7795-5286-46AD-AA14-BE54B29DD1AB copy.jpg', '101 - IMG_6858.jpg', '103 - 5D18A98B-F58C-468B-B74D-4D6FD43C8904.jpg', 'IMG_3783 2 copy.jpg', 'IMG_7413.jpg', 'IMG_7415.jpg', 'IMG_0225.jpg', 'IMG_0413.jpg', 'IMG_1770.jpg', 'IMG_3032.jpg', 'IMG_5534.jpg', 'IMG_6583 2.jpg', 'IMG_7688.jpg', 'IMG_7908.jpg', 'IMG_8988.jpg', 'IMG_0194.jpg', 'IMG_0198.jpg', 'IMG_0213.jpg', 'IMG_1464.jpg', 'IMG_1685.jpg', 'IMG_1790.jpg', 'IMG_2162.jpg', 'IMG_2682 2.jpg', 'IMG_6545.jpg']
+      };
+
+      const gallery = Object.entries(folderImages).flatMap(([color, files]) => files.map((name) => ({
+        color,
+        src: `${color === 'blaer' ? 'bláar-myndir' : color === 'bleikur' ? 'bleikar-myndir' : color === 'gulur' ? 'gular-myndir' : color === 'graenn' ? 'grænar-myndir' : 'rauðar-myndir'}/${name}`,
+        name
+      })));
+
+      /*
+        { src: 'mydir-D/56AA7795-5286-46AD-AA14-BE54B29DD1AB.jpg', name: '56AA7795-5286-46AD-AA14-BE54B29DD1AB.jpg' },
+        { src: 'mydir-D/5D18A98B-F58C-468B-B74D-4D6FD43C8904.jpg', name: '5D18A98B-F58C-468B-B74D-4D6FD43C8904.jpg' },
+        { src: 'mydir-D/6932F2F2-D12C-4517-98C1-9B55432E3F85.jpg', name: '6932F2F2-D12C-4517-98C1-9B55432E3F85.jpg' },
+        { src: 'mydir-D/IMG_0205.jpg', name: 'IMG_0205.jpg' },
+        { src: 'mydir-D/IMG_0215.jpg', name: 'IMG_0215.jpg' },
+        { src: 'mydir-D/IMG_0232.jpg', name: 'IMG_0232.jpg' },
+        { src: 'mydir-D/IMG_0535.jpg', name: 'IMG_0535.jpg' },
+        { src: 'mydir-D/IMG_0750.jpg', name: 'IMG_0750.jpg' },
+        { src: 'mydir-D/IMG_1071.jpg', name: 'IMG_1071.jpg' },
+        { src: 'mydir-D/IMG_1382.jpg', name: 'IMG_1382.jpg' },
+        { src: 'mydir-D/IMG_1483.jpg', name: 'IMG_1483.jpg' },
+        { src: 'mydir-D/IMG_1489.jpg', name: 'IMG_1489.jpg' },
+        { src: 'mydir-D/IMG_1628.jpg', name: 'IMG_1628.jpg' },
+        { src: 'mydir-D/IMG_1882.jpg', name: 'IMG_1882.jpg' },
+        { src: 'mydir-D/IMG_2016.jpg', name: 'IMG_2016.jpg' },
+        { src: 'mydir-D/IMG_3460.jpg', name: 'IMG_3460.jpg' },
+        { src: 'mydir-D/IMG_3462.jpg', name: 'IMG_3462.jpg' },
+        { src: 'mydir-D/IMG_4569.jpg', name: 'IMG_4569.jpg' },
+        { src: 'mydir-D/IMG_4710.jpg', name: 'IMG_4710.jpg' },
+        { src: 'mydir-D/IMG_5024.jpg', name: 'IMG_5024.jpg' },
+        { src: 'mydir-D/IMG_5265.jpg', name: 'IMG_5265.jpg' },
+        { src: 'mydir-D/IMG_5776.jpg', name: 'IMG_5776.jpg' },
+        { src: 'mydir-D/IMG_5808.jpg', name: 'IMG_5808.jpg' },
+        { src: 'mydir-D/IMG_6118.jpg', name: 'IMG_6118.jpg' },
+        { src: 'mydir-D/IMG_6172 2.jpg', name: 'IMG_6172 2.jpg' },
+        { src: 'mydir-D/IMG_6275.jpg', name: 'IMG_6275.jpg' },
+        { src: 'mydir-D/IMG_6522.jpg', name: 'IMG_6522.jpg' },
+        { src: 'mydir-D/IMG_6523.jpg', name: 'IMG_6523.jpg' },
+        { src: 'mydir-D/IMG_6593.jpg', name: 'IMG_6593.jpg' },
+        { src: 'mydir-D/IMG_6622.jpg', name: 'IMG_6622.jpg' },
+        { src: 'mydir-D/IMG_6651.jpg', name: 'IMG_6651.jpg' },
+        { src: 'mydir-D/IMG_6747.jpg', name: 'IMG_6747.jpg' },
+        { src: 'mydir-D/IMG_7043.jpg', name: 'IMG_7043.jpg' },
+        { src: 'mydir-D/IMG_7128.jpg', name: 'IMG_7128.jpg' },
+        { src: 'mydir-D/IMG_7431.jpg', name: 'IMG_7431.jpg' },
+        { src: 'mydir-D/IMG_7511.jpg', name: 'IMG_7511.jpg' },
+        { src: 'mydir-D/IMG_7701.jpg', name: 'IMG_7701.jpg' },
+        { src: 'mydir-D/IMG_7892.jpg', name: 'IMG_7892.jpg' },
+        { src: 'mydir-D/IMG_8475.jpg', name: 'IMG_8475.jpg' },
+        { src: 'mydir-D/IMG_8528.jpg', name: 'IMG_8528.jpg' },
+        { src: 'mydir-D/IMG_8530.jpg', name: 'IMG_8530.jpg' },
+        { src: 'mydir-D/IMG_8531.jpg', name: 'IMG_8531.jpg' },
+        { src: 'mydir-D/IMG_8537 2.jpg', name: 'IMG_8537 2.jpg' },
+        { src: 'mydir-D/IMG_8537.jpg', name: 'IMG_8537.jpg' },
+        { src: 'mydir-D/IMG_8540.jpg', name: 'IMG_8540.jpg' },
+        { src: 'mydir-D/IMG_9120.jpg', name: 'IMG_9120.jpg' },
+        { src: 'mydir-D/IMG_9137.jpg', name: 'IMG_9137.jpg' },
+        { src: 'mydir-D/IMG_9306.jpg', name: 'IMG_9306.jpg' },
+        { src: 'mydir-D/IMG_9470.jpg', name: 'IMG_9470.jpg' },
+        { src: 'mydir-D/IMG_9952.jpg', name: 'IMG_9952.jpg' },
+        { src: 'myndir-v/25ca6517a6f7cc35528f1c0cb481657d.jpg', name: '25ca6517a6f7cc35528f1c0cb481657d.jpg' },
+        { src: 'myndir-v/7380DC6C-2E58-40F1-834C-68D319776AB7.jpg', name: '7380DC6C-2E58-40F1-834C-68D319776AB7.jpg' },
+        { src: 'myndir-v/CF7010B2-6C35-4729-A570-1D4FD5085409.jpg', name: 'CF7010B2-6C35-4729-A570-1D4FD5085409.jpg' },
+        { src: 'myndir-v/IMG_0562 2.jpg', name: 'IMG_0562 2.jpg' },
+        { src: 'myndir-v/IMG_0985 2.jpg', name: 'IMG_0985 2.jpg' },
+        { src: 'myndir-v/IMG_1249.jpg', name: 'IMG_1249.jpg' },
+        { src: 'myndir-v/IMG_1696.jpg', name: 'IMG_1696.jpg' },
+        { src: 'myndir-v/IMG_1741.jpg', name: 'IMG_1741.jpg' },
+        { src: 'myndir-v/IMG_2677 2.jpg', name: 'IMG_2677 2.jpg' },
+        { src: 'myndir-v/IMG_3178.jpg', name: 'IMG_3178.jpg' },
+        { src: 'myndir-v/IMG_3777.jpg', name: 'IMG_3777.jpg' },
+        { src: 'myndir-v/IMG_4379.jpg', name: 'IMG_4379.jpg' },
+        { src: 'myndir-v/IMG_5143 2.jpg', name: 'IMG_5143 2.jpg' },
+        { src: 'myndir-v/IMG_5195.jpg', name: 'IMG_5195.jpg' },
+        { src: 'myndir-v/IMG_5212.jpg', name: 'IMG_5212.jpg' },
+        { src: 'myndir-v/IMG_5252.jpg', name: 'IMG_5252.jpg' },
+        { src: 'myndir-v/IMG_5640 3.jpg', name: 'IMG_5640 3.jpg' },
+        { src: 'myndir-v/IMG_6102.jpg', name: 'IMG_6102.jpg' },
+        { src: 'myndir-v/IMG_6136.jpg', name: 'IMG_6136.jpg' },
+        { src: 'myndir-v/IMG_6172 2.jpg', name: 'IMG_6172 2.jpg' },
+        { src: 'myndir-v/IMG_6178.jpg', name: 'IMG_6178.jpg' },
+        { src: 'myndir-v/IMG_6252.jpg', name: 'IMG_6252.jpg' },
+        { src: 'myndir-v/IMG_6277.jpg', name: 'IMG_6277.jpg' },
+        { src: 'myndir-v/IMG_6858.jpg', name: 'IMG_6858.jpg' },
+        { src: 'myndir-v/IMG_6975.jpg', name: 'IMG_6975.jpg' },
+        { src: 'myndir-v/IMG_7045.jpg', name: 'IMG_7045.jpg' },
+        { src: 'myndir-v/IMG_7193.jpg', name: 'IMG_7193.jpg' },
+        { src: 'myndir-v/IMG_7263.jpg', name: 'IMG_7263.jpg' },
+        { src: 'myndir-v/IMG_7292.jpg', name: 'IMG_7292.jpg' },
+        { src: 'myndir-v/IMG_7309.jpg', name: 'IMG_7309.jpg' },
+        { src: 'myndir-v/IMG_7335.jpg', name: 'IMG_7335.jpg' },
+        { src: 'myndir-v/IMG_7373.jpg', name: 'IMG_7373.jpg' },
+        { src: 'myndir-v/IMG_7397.jpg', name: 'IMG_7397.jpg' },
+        { src: 'myndir-v/IMG_7417.jpg', name: 'IMG_7417.jpg' },
+        { src: 'myndir-v/IMG_7557.jpg', name: 'IMG_7557.jpg' },
+        { src: 'myndir-v/IMG_7789.jpg', name: 'IMG_7789.jpg' },
+        { src: 'myndir-v/IMG_7790.jpg', name: 'IMG_7790.jpg' },
+        { src: 'myndir-v/IMG_7991.jpg', name: 'IMG_7991.jpg' },
+        { src: 'myndir-v/IMG_7993.jpg', name: 'IMG_7993.jpg' },
+        { src: 'myndir-v/IMG_8027.jpg', name: 'IMG_8027.jpg' },
+        { src: 'myndir-v/IMG_8038.jpg', name: 'IMG_8038.jpg' },
+        { src: 'myndir-v/IMG_8048.jpg', name: 'IMG_8048.jpg' },
+        { src: 'myndir-v/IMG_8156.jpg', name: 'IMG_8156.jpg' },
+        { src: 'myndir-v/IMG_8169.jpg', name: 'IMG_8169.jpg' },
+        { src: 'myndir-v/IMG_8291.jpg', name: 'IMG_8291.jpg' },
+        { src: 'myndir-v/IMG_8346.jpg', name: 'IMG_8346.jpg' },
+        { src: 'myndir-v/IMG_8349.jpg', name: 'IMG_8349.jpg' },
+        { src: 'myndir-v/IMG_8388.jpg', name: 'IMG_8388.jpg' },
+        { src: 'myndir-v/IMG_8403.jpg', name: 'IMG_8403.jpg' },
+        { src: 'myndir-v/IMG_8467.jpg', name: 'IMG_8467.jpg' },
+        { src: 'myndir-v/IMG_8488.jpg', name: 'IMG_8488.jpg' },
+        { src: 'myndir-v/IMG_8509.jpg', name: 'IMG_8509.jpg' },
+        { src: 'myndir-v/IMG_8575.jpg', name: 'IMG_8575.jpg' }
+      ];
+      */
+
+      const shuffle = (items) => {
+        const copy = [...items];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      };
+
+      const galleryEl = document.getElementById('gallery');
+      const themeButtons = [...document.querySelectorAll('.theme-btn')];
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImage = document.getElementById('lightbox-image');
+      const customCursor = document.getElementById('custom-cursor');
+      const typingObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+
+          revealName(entry.target);
+        });
+      }, { threshold: 0.35 });
+      let cursorFrame;
+
+      const typeName = (name) => {
+        if (name.dataset.typed) return;
+        name.dataset.typed = 'true';
+        const text = name.dataset.name;
+        let index = 0;
+        const writeNextCharacter = () => {
+          name.textContent = text.slice(0, index);
+          if (index >= text.length) return;
+
+          index += 1;
+          window.setTimeout(writeNextCharacter, 28 + Math.random() * 72);
+        };
+
+        window.setTimeout(writeNextCharacter, Math.random() * 450);
+      };
+
+      const revealName = (name) => {
+        if (name.dataset.typed) return;
+        name.classList.add('typing');
+        typingObserver.unobserve(name);
+        typeName(name);
+      };
+
+      const revealVisibleNames = () => {
+        document.querySelectorAll('.name:not([data-typed])').forEach((name) => {
+          const bounds = name.getBoundingClientRect();
+          if (bounds.top < window.innerHeight * 0.9 && bounds.bottom > 0) revealName(name);
+        });
+      };
+
+      document.addEventListener('pointermove', (event) => {
+        event.target.style.setProperty('cursor', 'none', 'important');
+        cancelAnimationFrame(cursorFrame);
+        cursorFrame = requestAnimationFrame(() => {
+          customCursor.style.transform = `translate3d(${event.clientX - 12}px, ${event.clientY - 12}px, 0)`;
+        });
+      });
+
+      document.documentElement.style.setProperty('cursor', 'none', 'important');
+      document.body.style.setProperty('cursor', 'none', 'important');
+      const imageColors = new Map();
+
+      const colorMatches = {
+        blaer: (hue) => hue >= 185 && hue < 255,
+        gulur: (hue) => hue >= 35 && hue < 75,
+        raudur: (hue) => hue >= 345 || hue < 15,
+        graenn: (hue) => hue >= 75 && hue < 165,
+        fjolublar: (hue) => hue >= 255 && hue < 345
+      };
+
+      const getImageColors = (image) => new Promise((resolve) => {
+        if (imageColors.has(image.src)) {
+          resolve(imageColors.get(image.src));
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        const sampleSize = 40;
+
+        const analyze = () => {
+          canvas.width = sampleSize;
+          canvas.height = sampleSize;
+          context.drawImage(image, 0, 0, sampleSize, sampleSize);
+          const pixels = context.getImageData(0, 0, sampleSize, sampleSize).data;
+          const counts = Object.fromEntries(Object.keys(colorMatches).map((color) => [color, 0]));
+          let colorfulPixels = 0;
+
+          for (let index = 0; index < pixels.length; index += 4) {
+            const red = pixels[index] / 255;
+            const green = pixels[index + 1] / 255;
+            const blue = pixels[index + 2] / 255;
+            const max = Math.max(red, green, blue);
+            const min = Math.min(red, green, blue);
+            const chroma = max - min;
+            const saturation = max === 0 ? 0 : chroma / max;
+            if (saturation < 0.2 || max < 0.15) continue;
+
+            let hue = 0;
+            if (chroma > 0) {
+              if (max === red) hue = 60 * (((green - blue) / chroma) % 6);
+              else if (max === green) hue = 60 * ((blue - red) / chroma + 2);
+              else hue = 60 * ((red - green) / chroma + 4);
+            }
+            if (hue < 0) hue += 360;
+
+            colorfulPixels += 1;
+            Object.entries(colorMatches).forEach(([color, matches]) => {
+              if (matches(hue)) counts[color] += 1;
+            });
+          }
+
+          const colors = Object.keys(counts).filter((color) => colorfulPixels && counts[color] / colorfulPixels >= 0.08);
+          imageColors.set(image.src, colors);
+          resolve(colors);
+        };
+
+        if (image.complete && image.naturalWidth) {
+          try { analyze(); } catch { resolve([]); }
+        } else {
+          image.addEventListener('load', () => {
+            try { analyze(); } catch { resolve([]); }
+          }, { once: true });
+          image.addEventListener('error', () => resolve([]), { once: true });
+        }
+      });
+
+      const renderGallery = async (selectedColor = null) => {
+        galleryEl.innerHTML = '';
+        const visibleGallery = shuffle(selectedColor ? gallery.filter((item) => item.color === selectedColor) : gallery);
+
+        visibleGallery.forEach((item) => {
+          const card = document.createElement('article');
+          card.className = 'card';
+
+          const img = document.createElement('img');
+          img.src = item.src;
+          img.alt = item.name;
+          img.loading = 'lazy';
+          if (item.name === 'IMG_7325.jpg') img.classList.add('warm-photo');
+          item.image = img;
+          img.addEventListener('click', () => {
+            lightboxImage.src = item.src;
+            lightboxImage.alt = item.name;
+            lightboxImage.classList.toggle('warm-photo', item.name === 'IMG_7325.jpg');
+            lightbox.hidden = false;
+            document.body.style.overflow = 'hidden';
+          });
+
+          const meta = document.createElement('div');
+          meta.className = 'card-meta';
+          meta.innerHTML = `
+            <p class="name" data-name="${item.name}" aria-label="${item.name}"></p>
+          `;
+
+          card.appendChild(img);
+          card.appendChild(meta);
+          galleryEl.appendChild(card);
+          typingObserver.observe(meta.querySelector('.name'));
+        });
+      };
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', async () => {
+          themeButtons.forEach((otherButton) => otherButton.classList.remove('active'));
+          button.classList.add('active');
+          await renderGallery(button.dataset.theme === 'allar' ? null : button.dataset.theme);
+        });
+      });
+
+      const closeLightbox = () => {
+        lightbox.hidden = true;
+        lightboxImage.src = '';
+        document.body.style.overflow = '';
+      };
+
+
+      window.addEventListener('scroll', revealVisibleNames, { passive: true });
+      window.addEventListener('resize', revealVisibleNames);
+      lightbox.addEventListener('click', (event) => {
+        if (event.target === lightbox || event.target.classList.contains('lightbox-close')) closeLightbox();
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !lightbox.hidden) closeLightbox();
+      });
+
+      renderGallery();
+      revealVisibleNames();
+    </script>
+  </body>
+</html>
